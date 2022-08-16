@@ -5,10 +5,13 @@ from sklearn import ensemble
 from sklearn import metrics
 import joblib
 
+from src.predict import TEST_DATA
+
 from . import dispatcher
 
 
 TRAINING_DATA = os.environ.get('TRAINING_DATA')
+TEST_DATA = os.environ.get('TEST_DATA')
 FOLD = int(os.environ.get('FOLD'))
 MODEL = os.environ.get('MODEL')
 #FOLD = 1
@@ -24,6 +27,7 @@ FOLD_MAPPING = {
 if __name__ == '__main__':
     print(TRAINING_DATA)
     df = pd.read_csv(TRAINING_DATA)
+    df_test = pd.read_csv(TEST_DATA)
     train_df = df[df.kfold.isin(FOLD_MAPPING.get(FOLD))]
     valid_df = df[df.kfold==FOLD]
 
@@ -36,13 +40,13 @@ if __name__ == '__main__':
     # make same order of variables:
     valid_df = valid_df[train_df.columns]
 
-    label_encoders = []
+    label_encoders = {}
     for c in train_df.columns:
         lbl = preprocessing.LabelEncoder()
-        lbl.fit(train_df[c].values.tolist()+valid_df[c].values.tolist())
+        lbl.fit(train_df[c].values.tolist()+valid_df[c].values.tolist()+df_test[c].values.tolist())
         train_df.loc[:,c] = lbl.transform(train_df[c].values.tolist())
         valid_df.loc[:,c] = lbl.transform(valid_df[c].values.tolist())
-        label_encoders.append((c,lbl))
+        label_encoders[c] = lbl
 
     # train the models
     clf = dispatcher.MODLES[MODEL]
@@ -51,6 +55,7 @@ if __name__ == '__main__':
     print(metrics.roc_auc_score(yvalid,preds))
 
     #save results
-    joblib.dump(label_encoders, f'models/{MODEL}_label_encoder.pkl')
-    joblib.dump(clf, f'models/{MODEL}.pkl')
+    joblib.dump(label_encoders, f'models/{MODEL}_{FOLD}_label_encoder.pkl')
+    joblib.dump(clf, f'models/{MODEL}_{FOLD}.pkl')
+    joblib.dump(train_df.columns, f'models/{MODEL}_{FOLD}_columns.pkl')
     
