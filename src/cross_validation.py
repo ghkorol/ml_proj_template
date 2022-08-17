@@ -37,7 +37,7 @@ class CrossValidation:
         self.df["kfold"] = -1
 
     def split(self):
-        if self.problem_type == "binary_classification":
+        if self.problem_type in ["binary_classification", "multiclass_classification"]
             target = self.target_cols[0]
             unique_values = self.df[target].nunique()
             if unique_values==1:
