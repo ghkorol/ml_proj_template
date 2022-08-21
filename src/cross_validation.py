@@ -1,8 +1,8 @@
 
 
 """
-- binary classification 
-- multi class classification
+---- binary classification 
+---- multi class classification
 - multi label classification
 - single column regretion
 - multi column regretion
@@ -37,7 +37,9 @@ class CrossValidation:
         self.df["kfold"] = -1
 
     def split(self):
-        if self.problem_type in ["binary_classification", "multiclass_classification"]
+        if self.problem_type in ["binary_classification", "multiclass_classification"]:
+            if self.num_targets !=1:
+                raise Exception("Invalid number of targets for this problem type")
             target = self.target_cols[0]
             unique_values = self.df[target].nunique()
             if unique_values==1:
@@ -47,12 +49,22 @@ class CrossValidation:
 
                 for fold, (train_idx, val_idx) in enumerate(kf.split(X=self.df, y=self.df[target].values)):
                     self.df.loc[val_idx, 'kfold'] = fold
-            
+        elif self.problem_type == "single_col_regression":
+            if self.num_targets !=1:
+                raise Exception("Invalid number of targets for this problem type")
+            target = self.target_cols[0]
+            kf = model_selection.KFold(n_splits=5, shuffle=False)
+            for fold, (train_idx, val_idx) in enumerate(kf.split(X=self.df, y=self.df[target].values)):
+                self.df.loc[val_idx, 'kfold'] = fold
+
+        else:
+            raise Exception("Proplem type not understood")
+
         return self.df
 
 if __name__ == "__main__":
-    df = pd.read_csv("input/train.csv")
-    cv = CrossValidation(df=df,target_cols=['target'])
+    df = pd.read_csv("input/train_reg.csv")
+    cv = CrossValidation(df=df,target_cols=['SalePrice'],problem_type="single_col_regression")
     df_split = cv.split()
     print(df_split.head())
     print(df_split.kfold.value_counts())
